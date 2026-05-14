@@ -65,8 +65,6 @@ headers = {"Authorization": f"Bearer {token}"}
 response = requests.post(url=URL, headers=headers)
 data = response.json()
 
-print(data)
-
 """### **2.3.2. Código token**"""
 
 access_token = data["access_token"]
@@ -198,11 +196,6 @@ df_workspaces = pd.DataFrame(rows)
 df_workspaces = df_workspaces.drop_duplicates(subset=["last_workspaceId"])
 
 print(df_workspaces.shape)
-display(df_workspaces.head(5))
-
-# download excel
-EXCEL_PATH = "cda_online_dynamox_workspaces.xlsx"
-df_workspaces.to_excel(EXCEL_PATH, index=False)
 
 """## **3.2. Ativos**
 
@@ -252,12 +245,6 @@ print(f"\nTotal de assets coletados: {len(all_assets)}")
 """### **3.2.2. Estrutura e organização**"""
 
 df_assets = pd.DataFrame(all_assets)
-
-display(df_assets.head(5))
-
-# download excel
-EXCEL_PATH = "cda_online_dynamox_ativos.xlsx"
-df_assets.to_excel(EXCEL_PATH, index=False)
 
 """### **3.2.3. Lista de Assets Id**"""
 
@@ -314,12 +301,6 @@ print(f"\nTotal de pontos coletados: {len(all_points)}")
 """### **3.3.2. Estrutura e organização**"""
 
 df_points = pd.DataFrame(all_points)
-
-display(df_points.head(5))
-
-# download excel
-EXCEL_PATH = "cda_online_dynamox_pontos.xlsx"
-df_points.to_excel(EXCEL_PATH, index=False)
 
 """## **3.3. DataFrame**"""
 
@@ -441,20 +422,15 @@ print(f"Shape: {df_hierarquia.shape}")
 sem_ws = df_hierarquia["workspace.0.id"].isna().sum()
 print(f"Linhas sem workspace: {sem_ws}")
 print()
-display(df_hierarquia.head(5))
-
-# download excel
-EXCEL_PATH = "cda_online_dynamox_hierarquia.xlsx"
-df_hierarquia.to_excel(EXCEL_PATH, index=False)
 
 """## **3.4. Carga no Sheets**"""
 
 # Nome da planilha (precisa já existir no seu Google Drive)
-nome_da_planilha = "cda_online_dynamox_hierarquia"
+planilha_id = "1yh0_mkYbB-KbwUNwz9txY99bQHktD9mUFtDVscbOLag"
 nome_da_aba = "Sheet1"
 
 # Abre a planilha
-planilha = gc.open(nome_da_planilha)
+planilha = gc.open_by_key(planilha_id)
 aba = planilha.worksheet(nome_da_aba)
 
 # Limpa a aba antes de escrever os dados (opcional)
@@ -514,23 +490,18 @@ for spotid in spotsid:
 
 df_alerts = pd.DataFrame(all_alert_policies)
 
-# download excel
-EXCEL_PATH = "cda_online_dynamox_condicao.xlsx"
-df_alerts.to_excel(EXCEL_PATH, index=False)
-
 """## **4.3. DataFrame**"""
 
 print(f"Total de policies: {len(df_alerts)}")
-display(df_alerts.head())
 
 """## **4.4. Carga no Sheets**"""
 
 # Nome da planilha (precisa já existir no seu Google Drive)
-nome_da_planilha = "cda_online_dynamox_condicao"
+planilha_id = "1DUmtzyd6WpsSYm9W5CWuyiQ_9-FkRbZz_luHhkH-CeI"
 nome_da_aba = "Sheet1"
 
 # Abre a planilha
-planilha = gc.open(nome_da_planilha)
+planilha = gc.open_by_key(planilha_id)
 aba = planilha.worksheet(nome_da_aba)
 
 # Limpa a aba antes de escrever os dados (opcional)
@@ -713,22 +684,14 @@ df_laudos = df_laudos[ordered]
 
 print(f"Shape: {df_laudos.shape}")
 
-"""## **5.3. DataFrame**"""
-
-display(df_laudos.head(5))
-
-# download excel
-EXCEL_PATH = "cda_online_dynamox_laudos.xlsx"
-df_laudos.to_excel(EXCEL_PATH, index=False)
-
 """## **5.4. Carga no Sheets**"""
 
 # Abre a planilha
-nome_da_planilha = "cda_online_dynamox_laudos"
+planilha_id = "1x6AJxILgPxb13LCaK1L8qizZaxGK3qOZtTiR_BwqyoA"
 nome_da_aba      = "Sheet1"
 
-planilha = gc.open(nome_da_planilha)
-aba      = planilha.worksheet(nome_da_aba)
+planilha = gc.open_by_key(planilha_id)
+aba = planilha.worksheet(nome_da_aba)
 
 # Verifica se df_laudos está vazio
 if df_laudos.empty:
@@ -778,38 +741,6 @@ else:
         print(f"Novos inseridos: {len(novos)}")
         print(f"Atualizados: {atualizados}")
         print(f"Total na planilha: {len(df_existente)}")
-
-"""## **5.5. Rate Limit**"""
-
-url = "https://api.dynamox.solutions/v1/technical-reports"
-
-headers = {
-    "Authorization": f"Bearer {access_token}"
-}
-
-params = {
-    "contextId": "62b2031b38d48143feed8ef4",
-    "startAt": "2024-06-12T00:00:00.000Z",
-    "endAt": "2024-06-12T23:59:59.000Z",
-    "limit": 1,
-    "page": 1
-}
-
-response = requests.get(url, headers=headers, params=params)
-
-print("Status:", response.status_code)
-
-print("\n=== RateLimit-Policy ===")
-print(response.headers.get("RateLimit-Policy"))
-
-print("\n=== RateLimit ===")
-print(response.headers.get("RateLimit"))
-
-print("\n=== Retry-After ===")
-print(response.headers.get("Retry-After"))
-
-print("\n=== BODY ===")
-print(response.json())
 
 """# **6. TELEMETRIA**
 
@@ -903,18 +834,14 @@ else:
     print("DataFrame vazio ou colunas desejadas não estão presentes.")
     df_telemetry = pd.DataFrame(columns=colunas_desejadas)
 
-"""### **6.2.3. DataFrame**"""
-
-display(df_telemetry)
-
 """### **6.2.4. Carga no Sheets**"""
 
 # Nome da planilha e aba
-nome_da_planilha = "cda_online_dynamox_telemetria"
+planilha_id = "11rzDwr5U6HAfIUXHLNOCcoFkmPEcOUNDpTnZ4Nmg2uA"
 nome_da_aba = "Sheet1"
 
 # Abre a planilha e a aba
-planilha = gc.open(nome_da_planilha)
+planilha = gc.open_by_key(planilha_id)
 aba = planilha.worksheet(nome_da_aba)
 
 # Lê os valores atuais da aba
@@ -960,11 +887,11 @@ else:
 
 """### **6.2.5. Remoção de Duplicadas**"""
 
-nome_da_planilha = "cda_online_dynamox_telemetria"
+planilha_id = "11rzDwr5U6HAfIUXHLNOCcoFkmPEcOUNDpTnZ4Nmg2uA"
 nome_da_aba = "Sheet1"
 chaves = ["monitoringPointId", "attributes_axis", "displayName_pt", "unit", "dataPoints_value", "dataPoints_datetime"]
 
-planilha = gc.open(nome_da_planilha)
+planilha = gc.open_by_key(planilha_id)
 aba = planilha.worksheet(nome_da_aba)
 dados_existentes = aba.get_all_values()
 
@@ -990,410 +917,6 @@ else:
         print(f"Removidas {linhas_antes - linhas_depois} linhas duplicadas. Planilha atualizada com sucesso.")
     else:
         print("Nenhuma duplicação encontrada. Tudo limpo.")
-
-"""# **7. PSEUDOCÓDIGO**
-
-# CDA Online Dynamox
-
----
-
-## 1. CONFIGURAÇÕES INICIAIS
-
-```
-SALVAR em "application_key.json":
-    { _id, expiresAt, publicKey, applicationId, email, privateKey }
-
-DEFINIR:
-    token_url = "https://api.dynamox.solutions/v1/token"
-
-workspace = {
-    "ubu"     : "62b20314457a4c772a1ba4a8",
-    "germano" : "62b2031b38d48143feed8ef4"
-}
-
-AUTENTICAR Google Sheets via OAuth
-```
-
----
-
-## 2. AUTENTICAÇÃO
-
-```
-FUNÇÃO generate_token(application_key_path):
-    ler chave JSON
-    gerar JWT RSA-256
-    RETORNAR token
-
-token = generate_token("application_key.json")
-
-POST token_url com Bearer token
-access_token = resposta["access_token"]
-
-headers = {
-    Authorization: "Bearer {access_token}",
-    Content-Type: "application/json"
-}
-```
-
----
-
-## 3. HIERARQUIA
-
-### 3.1 WORKSPACES
-
-```
-FUNÇÃO list_children(parent_id):
-    children = []
-    page_token = NULL
-
-    LOOP:
-        GET /v1/workspaces com parentId
-
-        SE erro:
-            registrar
-            SAIR
-
-        adicionar docs em children
-
-        SE nextPageToken inexistente:
-            SAIR
-
-    RETORNAR children
-
-
-FUNÇÃO traverse(ws_id, ws_name, ancestors=[]):
-    current_path = ancestors + workspace atual
-    children = list_children(ws_id)
-
-    SE children vazio:
-        RETORNAR current_path
-
-    PARA CADA child:
-        traverse(child)
-
-EXECUTAR traverse para cada workspace raiz
-
-GERAR df_workspaces
-REMOVER duplicatas
-SALVAR Excel
-```
-
----
-
-### 3.2 ASSETS
-
-```
-PARA CADA workspace:
-    LOOP paginado:
-        GET /v1/workspaces/{workspace_id}/assets
-
-        SE erro:
-            registrar
-            SAIR
-
-        adicionar assets
-
-FILTRAR depthAsset == 0
-GERAR df_assets
-SALVAR Excel
-```
-
----
-
-### 3.3 PONTOS DE MONITORAMENTO
-
-```
-PARA CADA asset raiz:
-    LOOP paginado:
-        GET /v1/assets/{asset_id}/monitoring-points
-
-        SE erro:
-            registrar
-            SAIR
-
-        adicionar pontos
-
-GERAR df_points
-SALVAR Excel
-```
-
----
-
-### 3.4 HIERARQUIA COMPLETA
-
-```
-FUNÇÃO parse_sensors():
-    extrair orientação x/y/z
-
-FUNÇÃO subir_hierarquia(point):
-    montar:
-        workspace
-        machine
-        component
-        subset
-        spot
-        sensores
-        timestamps
-
-    tratar auto-referência do parentId
-
-    RETORNAR row
-
-CRIAR índices lookup:
-    at_idx
-    ws_idx
-
-APLICAR subir_hierarquia para todos os pontos
-
-GERAR df_hierarquia
-SALVAR Excel
-ENVIAR Google Sheets
-```
-
----
-
-## 4. CONDIÇÃO
-
-```
-### 4.1 LISTA DE PONTOS
-
-spotsid = df_hierarquia["spot.id"]
-
-REMOVER nulos
-REMOVER duplicados
-```
-
----
-
-### 4.2 CONSULTA STATUS DE ALERTA
-
-```
-all_alert_policies = []
-
-PARA CADA spotid:
-    GET /v1/alert-policies/status?resourceId=spotid
-
-    SE status 200:
-        policies = resposta
-        adicionar spotId em cada policy
-        adicionar em all_alert_policies
-
-    SENÃO SE status 429:
-        aguardar Retry-After
-        repetir requisição
-
-    SENÃO:
-        registrar erro
-
-    aguardar pequeno intervalo entre chamadas
-```
-
----
-
-### 4.3 DATAFRAME CONDIÇÃO
-
-```
-df_alerts = DataFrame(all_alert_policies)
-
-VALIDAR:
-    quantidade total
-    preview dos registros
-
-SALVAR:
-    cda_online_dynamox_condicao.xlsx
-```
-
----
-
-### 4.4 CARGA GOOGLE SHEETS
-
-```
-ABRIR planilha:
-    cda_online_dynamox_condicao
-
-LIMPAR aba
-ESCREVER df_alerts
-```
-
----
-
-## 5. TELEMETRIA
-
-### 5.1 LISTA DE PONTOS
-
-```
-machinelist = lista fixa de máquinas
-
-spotlist =
-    df_hierarquia
-    filtrar machine.id em machinelist
-    extrair spot.id
-```
-
----
-
-### 5.2 COLETA DE TELEMETRIA
-
-```
-PARA CADA spot:
-    GET /v1beta/telemetry/data-points/raw
-
-    LOOP paginação:
-        processar resposta
-
-        SE displayName contém "Temperatura":
-            salvar:
-                monitoringPointId
-                axis
-                unidade
-                datetime
-                valor
-```
-
----
-
-### 5.3 DATAFRAME
-
-```
-GERAR df_telemetry
-
-SE vazio:
-    criar dataframe padrão
-```
-
----
-
-### 5.4 CARGA INCREMENTAL
-
-```
-ABRIR Google Sheets telemetria
-
-LER registros existentes
-
-COMPARAR por chave:
-    monitoringPointId
-    attributes_axis
-    displayName_pt
-    unit
-    dataPoints_value
-    dataPoints_datetime
-
-INSERIR somente novos
-```
-
----
-
-### 5.5 REMOVER DUPLICATAS
-
-```
-LER planilha completa
-REMOVER duplicados
-REESCREVER
-```
-
----
-
-## 6. LAUDOS
-
-### 6.1 CONSULTA
-
-```
-PARA CADA workspace:
-    GET /v1/technical-reports
-
-    SE 200:
-        armazenar docs
-
-    SE 429:
-        aguardar Retry-After
-```
-
----
-
-### 6.2 PROCESSAMENTO
-
-```
-FUNÇÃO processar_laudo(doc):
-    extrair:
-        identificação
-        status
-        datas
-        falhas
-        usuários
-        breadcrumb
-        machine/component/subset/spot
-
-RETORNAR row
-
-GERAR df_laudos
-SALVAR Excel
-```
-
----
-
-### 6.3 UPSERT GOOGLE SHEETS
-
-```
-SE planilha vazia:
-    inserir tudo
-
-SENÃO:
-    comparar por reportId
-
-    SE novo:
-        inserir
-
-    SE atualizado:
-        substituir
-
-REESCREVER planilha
-```
-
----
-
-## 7. RATE LIMIT
-
-```
-CONSULTAR endpoint teste
-
-EXIBIR:
-    RateLimit-Policy
-    RateLimit
-    Retry-After
-
-VALIDAR comportamento histórico
-```
-
----
-
-## FLUXO GERAL
-
-```
-INÍCIO
-│
-├─ Autenticação API
-├─ Hierarquia
-│   ├─ Workspaces
-│   ├─ Assets
-│   ├─ Pontos
-│   └─ Hierarquia consolidada
-│
-├─ Condição
-│   ├─ Buscar status alert-policies
-│   ├─ Consolidar dataframe
-│   └─ Enviar Sheets
-│
-├─ Telemetria
-│   ├─ Buscar temperatura
-│   ├─ Incremental
-│   └─ Deduplicação
-│
-├─ Laudos
-│   ├─ Consulta
-│   ├─ Processamento
-│   └─ Upsert
-│
-└─ Diagnóstico Rate Limit
 
 FIM
 ```
