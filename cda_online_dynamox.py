@@ -3,8 +3,6 @@
 
 # **1. BIBLIOTECAS**
 """
-
-from gspread_dataframe import get_as_dataframe, set_with_dataframe
 from datetime import datetime, timezone, timedelta, UTC
 from collections import deque
 import pandas as pd
@@ -15,20 +13,17 @@ import jwt
 import ast
 import os
 
+import gspread
+from google.oauth2.service_account import Credentials
+from gspread_dataframe import get_as_dataframe, set_with_dataframe
+
 """# **2. DADOS DE ACESSO**
 
 ## **2.1. Credenciais**
 """
 
 # Salva o JSON em um arquivo
-json_content = {
-    "_id": os.getenv("DYNAMOX_ID"),
-    "expiresAt": None,
-    "publicKey": os.getenv("DYNAMOX_PUBLICKEY"),
-    "applicationId": os.getenv("DYNAMOX_APLICATIONID"),
-    "email": os.getenv("DYNAMOX_EMAIL"),
-    "privateKey": os.getenv("DYNAMOX_PRIVATEKEY")
-}
+json_content = json.loads(os.environ["DYNAMOX_SERVICE_ACCOUNT"])
 
 with open("application_key.json", "w") as json_file:
     json.dump(json_content, json_file)
@@ -95,11 +90,6 @@ workspace = {
 
 ### **2.6.1. Autenticação Sheets**
 """
-
-import gspread
-from google.colab import auth
-from gspread_dataframe import set_with_dataframe
-from google.auth import default
 
 # Lê a variável de ambiente com o conteúdo do JSON da conta de serviço
 service_account_info = json.loads(os.environ["GOOGLE_SERVICE_ACCOUNT"])
