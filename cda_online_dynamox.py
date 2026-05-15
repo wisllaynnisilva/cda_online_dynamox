@@ -3,7 +3,7 @@
 
 # **1. BIBLIOTECAS**
 """
-from datetime import datetime, timezone, timedelta, UTC
+from datetime import datetime, timedelta, timezone
 from collections import deque
 import pandas as pd
 import requests
@@ -768,7 +768,7 @@ API_URL = "https://api.dynamox.solutions/v1beta/telemetry/data-points/raw"
 headers = header
 
 UTC = timezone.utc
-hoje = datetime.now(UTC)
+hoje = datetime.now(timezone.utc)
 ontem = hoje - timedelta(days=1)
 
 # Ontem 00:00 até ontem 23:59:59
