@@ -917,7 +917,3 @@ else:
         print(f"Removidas {linhas_antes - linhas_depois} linhas duplicadas. Planilha atualizada com sucesso.")
     else:
         print("Nenhuma duplicação encontrada. Tudo limpo.")
-
-FIM
-```
-"""
