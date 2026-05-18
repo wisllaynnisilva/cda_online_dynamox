@@ -829,91 +829,76 @@ colunas_desejadas = ["monitoringPointId", "attributes_axis", "displayName_pt", "
 # Verifica se o DataFrame não está vazio e contém as colunas desejadas
 if not df_telemetry.empty and all(col in df_telemetry.columns for col in colunas_desejadas):
     df_telemetry = df_telemetry[colunas_desejadas]
-    display(df_telemetry)
+    print(df_telemetry.shape)
+    
 else:
     print("DataFrame vazio ou colunas desejadas não estão presentes.")
     df_telemetry = pd.DataFrame(columns=colunas_desejadas)
 
 """### **6.2.4. Carga no Sheets**"""
 
-# Nome da planilha e aba
 planilha_id = "11rzDwr5U6HAfIUXHLNOCcoFkmPEcOUNDpTnZ4Nmg2uA"
 nome_da_aba = "Sheet1"
 
-# Abre a planilha e a aba
-planilha = gc.open_by_key(planilha_id)
-aba = planilha.worksheet(nome_da_aba)
+chaves = [
+    "monitoringPointId",
+    "attributes_axis",
+    "displayName_pt",
+    "unit",
+    "dataPoints_value",
+    "dataPoints_datetime"
+]
 
-# Lê os valores atuais da aba
+planilha = gc.open_by_key(planilha_id)
+
+try:
+    aba = planilha.worksheet(nome_da_aba)
+except gspread.WorksheetNotFound:
+    aba = planilha.add_worksheet(title=nome_da_aba, rows=1000, cols=20)
+
 dados_existentes = aba.get_all_values()
 
-# Converte para DataFrame (se houver dados)
-if dados_existentes:
-    df_existente = pd.DataFrame(dados_existentes[1:], columns=dados_existentes[0])  # ignora cabeçalho
-else:
-    df_existente = pd.DataFrame()
-
-# Prepara o novo DataFrame (df_telemetry precisa já estar criado antes)
 df_novo = df_telemetry.copy()
 
-# Converte colunas complexas (dicionários, listas) para string
-for col in df_novo.select_dtypes(include=["object"]).columns:
-    df_novo[col] = df_novo[col].apply(lambda x: json.dumps(x) if isinstance(x, (dict, list)) else x)
+# garante colunas
+df_novo = df_novo[chaves]
 
-# Define as colunas para comparação de duplicados
-chaves = ["monitoringPointId", "attributes_axis", "displayName_pt", "unit", "dataPoints_value", "dataPoints_datetime"]
+# normaliza tudo como string para comparação consistente
+df_novo = df_novo.fillna("").astype(str)
 
-# Se já houver dados existentes, remover duplicados
-if not df_existente.empty:
-    # Garante que todas as colunas existem nos dois DataFrames
-    colunas_comuns = [c for c in chaves if c in df_existente.columns and c in df_novo.columns]
-    # Cria um conjunto de tuplas com as combinações já existentes
-    existentes_set = set(df_existente[colunas_comuns].apply(tuple, axis=1).tolist())
-    # Filtra os novos dados mantendo apenas combinações não existentes
-    df_filtrado = df_novo[~df_novo[colunas_comuns].apply(tuple, axis=1).isin(existentes_set)]
-else:
-    df_filtrado = df_novo.copy()
-
-# Se for a primeira vez, adiciona os cabeçalhos
+# se planilha vazia
 if not dados_existentes:
-    aba.append_row(df_filtrado.columns.tolist())
-
-# Adiciona somente os dados novos
-if not df_filtrado.empty:
-    aba.append_rows(df_filtrado.values.tolist(), value_input_option="RAW")
-    print(f"{len(df_filtrado)} novas linhas adicionadas com sucesso.")
+    aba.append_row(chaves)
+    aba.append_rows(df_novo.values.tolist(), value_input_option="RAW")
+    print(f"{len(df_novo)} novas linhas adicionadas.")
 else:
-    print("Nenhuma nova linha para adicionar. Tudo já está na planilha.")
+    df_existente = pd.DataFrame(dados_existentes[1:], columns=dados_existentes[0])
 
-"""### **6.2.5. Remoção de Duplicadas**"""
+    # garante que colunas existam
+    for col in chaves:
+        if col not in df_existente.columns:
+            df_existente[col] = ""
 
-planilha_id = "11rzDwr5U6HAfIUXHLNOCcoFkmPEcOUNDpTnZ4Nmg2uA"
-nome_da_aba = "Sheet1"
-chaves = ["monitoringPointId", "attributes_axis", "displayName_pt", "unit", "dataPoints_value", "dataPoints_datetime"]
+    df_existente = df_existente[chaves].fillna("").astype(str)
 
-planilha = gc.open_by_key(planilha_id)
-aba = planilha.worksheet(nome_da_aba)
-dados_existentes = aba.get_all_values()
+    existentes_set = set(
+        df_existente.apply(tuple, axis=1)
+    )
 
-if not dados_existentes:
-    print("A planilha está vazia. Nada a verificar.")
-else:
-    # Converte para DataFrame
-    df = pd.DataFrame(dados_existentes[1:], columns=dados_existentes[0])
-    linhas_antes = len(df)
+    df_filtrado = df_novo[
+        ~df_novo.apply(tuple, axis=1).isin(existentes_set)
+    ]
 
-    # Remove duplicados (mantém a primeira ocorrência)
-    df_sem_dup = df.drop_duplicates(subset=chaves, keep="first")
-    linhas_depois = len(df_sem_dup)
+    if not df_filtrado.empty:
+        chunk_size = 1000
 
-    # Se houve duplicação
-    if linhas_depois < linhas_antes:
-        # Limpa a planilha
-        aba.clear()
-        # Reescreve cabeçalho
-        aba.append_row(df_sem_dup.columns.tolist())
-        # Reescreve dados limpos
-        aba.append_rows(df_sem_dup.values.tolist(), value_input_option="RAW")
-        print(f"Removidas {linhas_antes - linhas_depois} linhas duplicadas. Planilha atualizada com sucesso.")
+        for i in range(0, len(df_filtrado), chunk_size):
+            chunk = df_filtrado.iloc[i:i + chunk_size]
+            aba.append_rows(
+                chunk.values.tolist(),
+                value_input_option="RAW"
+            )
+
+        print(f"{len(df_filtrado)} novas linhas adicionadas.")
     else:
-        print("Nenhuma duplicação encontrada. Tudo limpo.")
+        print("Nenhum dado novo encontrado.")
