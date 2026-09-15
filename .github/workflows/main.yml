@@ -2,7 +2,7 @@ name: cda_online_dynamox
 
 on:
   schedule:
-    - cron: '0 8 * * *'  # Todo dia às 05:00 no Brasil (UTC-3)
+    - cron: '0 9 * * *'  # Todo dia às 06:00 no Brasil (UTC-3)
   workflow_dispatch:
 
 jobs:
