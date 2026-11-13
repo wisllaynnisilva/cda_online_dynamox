@@ -1,9 +1,8 @@
-pandas
-requests
-PyJWT
-pyspark
-gspread
-google-auth
-gspread-dataframe
-oauth2client
-cryptography
+pandas==3.1.1
+requests==2.34.2
+urllib3==2.8.0
+gspread==6.2.1
+gspread-dataframe==4.0.0
+google-auth==2.62.2
+PyJWT==2.15.1
+cryptography==50.0.2
