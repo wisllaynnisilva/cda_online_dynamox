@@ -12,6 +12,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, time as dtime, timedelta, timezone
 import ast
 import threading
+import time
 
 import jwt
 import pandas as pd
@@ -32,9 +33,22 @@ WORKSPACES = {
     "ubu": env_obrigatoria("DYNAMOX_UBU"),
     "germano": env_obrigatoria("DYNAMOX_GERMANO"),
 }
-WORKERS = 3          # a Dynamox devolve 429 com facilidade: paralelismo baixo
+# A Dynamox tem limite de requisições: chamadas uma a uma (como no original)
+WORKERS = 1
+PAUSA_ALERTAS = 0.5          # segundos entre chamadas de alerta (como no original)
+TENTATIVAS = 4               # cada nova tentativa também consome a cota
 
-# Máquinas cuja telemetria (temperatura) é coletada
+# Laudos: só a 1ª página (50 laudos/dia), para poupar a cota diária.
+# Se algum dia vier mais que isso, o log avisa. Aumente se precisar.
+MAX_PAGINAS_LAUDOS = 1
+
+# Alertas: antes de varrer todos os pontos, testa estes primeiros. Se todos
+# derem 404 (acesso suspenso, ex.: troca de contrato), a etapa para sem
+# gastar ~1000 requisições. Quando o acesso voltar, roda normalmente.
+PONTOS_TESTE_ALERTAS = 5
+
+# Máquinas cuja telemetria (temperatura) é coletada — lista de IDs
+# (pode ter vários; mantenha só as necessárias por causa do limite)
 MACHINELIST = ["62b20314457a4c772a1ba4a8"]
 
 PLANILHAS = {
@@ -85,8 +99,8 @@ def api_get(caminho_ou_url, params=None, aceitar_404=False):
             headers=dict(_headers) or renovar_token(),
             params=params,
             ao_401=renovar_token,
-            tentativas=8,
-            espera_max=300,
+            tentativas=TENTATIVAS,
+            espera_max=120,
         )
     except Exception as exc:  # noqa: BLE001
         r = getattr(exc, "response", None)
@@ -96,7 +110,7 @@ def api_get(caminho_ou_url, params=None, aceitar_404=False):
     return resp.json()
 
 
-def paginar_docs(caminho, params=None):
+def paginar_docs(caminho, params=None, max_paginas=None):
     """Paginação por page/hasNext usada em assets, pontos e laudos."""
     params = dict(params or {})
     pagina, docs = 1, []
@@ -105,6 +119,12 @@ def paginar_docs(caminho, params=None):
         data = api_get(caminho, params) or {}
         docs.extend(data.get("docs") or [])
         if not (data.get("pages") or {}).get("hasNext"):
+            return docs
+        if max_paginas and pagina >= max_paginas:
+            log.warning(
+                "%s: há mais páginas, mas o limite é %d página(s) — %d registros lidos",
+                caminho, max_paginas, len(docs),
+            )
             return docs
         pagina += 1
 
@@ -328,17 +348,23 @@ def etapa_alertas(df_hier):
     log.info("Total de spots: %d", len(spots))
 
     def buscar(spot):
-        return api_get("/v1/alert-policies/status", {"resourceId": spot}, aceitar_404=True)
+        resultado = api_get("/v1/alert-policies/status", {"resourceId": spot}, aceitar_404=True)
+        time.sleep(PAUSA_ALERTAS)
+        return resultado
 
-    respostas = em_paralelo(buscar, spots)
-    nao_encontrados = sum(r is None for r in respostas)
-    if spots and nao_encontrados == len(spots):
+    # Teste com poucos pontos antes de varrer tudo (poupa a cota)
+    teste = [buscar(s) for s in spots[:PONTOS_TESTE_ALERTAS]]
+    if teste and all(r is None for r in teste):
         # Acontecia todo dia: 404 em 100% dos pontos e a planilha era
         # apagada e regravada vazia. Agora a planilha é preservada.
         raise RuntimeError(
-            "404 em TODOS os pontos no endpoint /v1/alert-policies/status — "
-            "verifique com a Dynamox se o endpoint/parâmetro mudou. Planilha preservada."
+            f"404 nos {len(teste)} primeiros pontos em /v1/alert-policies/status — "
+            "acesso aos alertas indisponível (ex.: troca de contrato). "
+            "Etapa interrompida para poupar requisições; planilha preservada."
         )
+
+    respostas = teste + em_paralelo(buscar, spots[PONTOS_TESTE_ALERTAS:])
+    nao_encontrados = sum(r is None for r in respostas)
 
     politicas = []
     for spot, lista in zip(spots, respostas):
@@ -421,7 +447,7 @@ def etapa_laudos():
 
     docs = []
     for nome, context_id in WORKSPACES.items():
-        # agora com paginação (antes só a 1ª página de 50 era lida)
+        # só a 1ª página por padrão (limite diário de requisições)
         laudos = paginar_docs("/v1/technical-reports", {
             "contextId": context_id,
             "startAt": inicio.strftime("%Y-%m-%dT%H:%M:%S.000Z"),
@@ -429,7 +455,7 @@ def etapa_laudos():
             "sort": "reportedAt",
             "direction": -1,
             "limit": 50,
-        })
+        }, max_paginas=MAX_PAGINAS_LAUDOS)
         log.info("%s: %d laudos em %s", nome, len(laudos), dia)
         docs.extend(laudos)
 
@@ -447,23 +473,33 @@ def etapa_laudos():
         return novos
 
     existente = pd.DataFrame(valores[1:], columns=valores[0])
-    existente = existente.loc[:, ~existente.columns.duplicated()]
-    existente = existente.drop_duplicates("reportId", keep="first").set_index("reportId", drop=False)
-    novos_idx = novos.set_index("reportId", drop=False)
+    existente = existente.loc[:, ~existente.columns.duplicated()].astype(object)
 
-    colunas = list(existente.columns) + [c for c in novos.columns if c not in existente.columns]
-    existente = existente.reindex(columns=colunas).astype(object)
+    # estrutura da planilha mantida: só as colunas que já existem no cabeçalho
+    colunas = list(existente.columns)
+    fora = [c for c in novos.columns if c not in colunas]
+    if fora:
+        log.warning("Laudos: colunas fora do cabeçalho (não gravadas): %s", fora)
+    cols_upd = [c for c in novos.columns if c in colunas]
 
-    comuns = novos_idx.index.intersection(existente.index)
-    inseridos = novos_idx.index.difference(existente.index)
-    # Atualiza no lugar os laudos que já existiam (mesma posição na planilha)
-    for rid in comuns:
-        for col in novos_idx.columns:
-            existente.at[rid, col] = novos_idx.at[rid, col]
+    # Atualiza no lugar os laudos que já existiam (mesma posição na planilha);
+    # nenhuma linha existente é removida.
+    ids_existentes = existente["reportId"].astype(str)
+    comuns, inseridos = 0, []
+    for _, linha in novos.iterrows():
+        mascara = ids_existentes == str(linha["reportId"])
+        if mascara.any():
+            for col in cols_upd:
+                existente.loc[mascara, col] = linha[col]
+            comuns += 1
+        else:
+            inseridos.append(linha)
 
-    final = pd.concat([existente, novos_idx.loc[inseridos].reindex(columns=colunas)], ignore_index=True)
+    final = pd.concat(
+        [existente, pd.DataFrame(inseridos).reindex(columns=colunas)], ignore_index=True
+    ) if inseridos else existente
     gravar_aba(PLANILHAS["laudos"], final, "laudos")
-    log.info("Laudos: %d novos, %d atualizados, %d no total", len(inseridos), len(comuns), len(final))
+    log.info("Laudos: %d novos, %d atualizados, %d no total", len(inseridos), comuns, len(final))
     return novos
 
 
