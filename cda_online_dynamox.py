@@ -749,7 +749,7 @@ else:
 ### **6.1.1. Lista de ativos**
 """
 
-machinelist = ['62b20314457a4c772a1ba4a8']
+machinelist = ['6a8489ccb0091263f61fe6cf']
 
 """### **6.1.2. Lista de pontos**"""
 
