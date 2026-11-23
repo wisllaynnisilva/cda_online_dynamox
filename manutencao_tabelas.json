@@ -24,6 +24,9 @@
       "unit",
       "dataPoints_value",
       "dataPoints_datetime"
-    ]
+    ],
+    "correcao": {
+      "deduplicar": "primeira"
+    }
   }
 }
