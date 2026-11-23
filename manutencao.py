@@ -329,6 +329,8 @@ def diagnosticar_apps_script():
     r = SESSION.get(url, params={"acao": "ping"}, timeout=60)
     corpo = re.sub(r"<[^>]+>", " ", r.text)
     corpo = re.sub(r"\s+", " ", corpo)[:400]
+    hops = " -> ".join(f"{h.status_code} {h.url.split('?')[0][:60]}" for h in r.history)
+    print(f"DIAG redirecionamentos: {hops or '(nenhum)'} -> {r.status_code} {r.url.split('?')[0][:60]}")
     print(f"DIAG sem credencial: HTTP {r.status_code} | {r.headers.get('content-type')} | {corpo}")
     try:
         print("DIAG com token da conta de serviço:", _apps_script(acao="ping"))
