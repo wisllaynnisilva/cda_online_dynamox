@@ -332,6 +332,12 @@ def diagnosticar_apps_script():
     hops = " -> ".join(f"{h.status_code} {h.url.split('?')[0][:60]}" for h in r.history)
     print(f"DIAG redirecionamentos: {hops or '(nenhum)'} -> {r.status_code} {r.url.split('?')[0][:60]}")
     print(f"DIAG sem credencial: HTTP {r.status_code} | {r.headers.get('content-type')} | {corpo}")
+    nav = SESSION.get(url, params={"acao": "ping"}, timeout=60, headers={
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                      "(KHTML, like Gecko) Chrome/130.0 Safari/537.36",
+        "Accept": "text/html,application/json"})
+    print(f"DIAG como navegador: HTTP {nav.status_code} | {nav.headers.get('content-type')} | "
+          f"{re.sub(r'\\s+', ' ', re.sub(r'<[^>]+>', ' ', nav.text))[:200]}")
     try:
         print("DIAG com token da conta de serviço:", _apps_script(acao="ping"))
     except Exception as exc:  # noqa: BLE001
