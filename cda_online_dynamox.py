@@ -53,7 +53,7 @@ MACHINELIST = ["6a8489ccb0091263f61fe6cf"]
 
 # Tabela histórica: ao passar deste nº de linhas, o arquivo é arquivado como
 # '<nome> revNNN' e a planilha ativa recomeça vazia (mesmo ID/link).
-LIMITE_LINHAS = {"telemetria": 500_000}
+LIMITE_LINHAS = {"telemetria": 1_000_000}
 
 PLANILHAS = {
     "hierarquia": "1yh0_mkYbB-KbwUNwz9txY99bQHktD9mUFtDVscbOLag",
