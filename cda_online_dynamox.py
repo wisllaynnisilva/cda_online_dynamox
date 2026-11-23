@@ -111,6 +111,8 @@ def api_get(caminho_ou_url, params=None, aceitar_404=False):
         if aceitar_404 and r is not None and r.status_code == 404:
             return None
         raise
+    if resp.status_code == 204 or not resp.content.strip():   # sem conteúdo = sem dados
+        return None
     return resp.json()
 
 
