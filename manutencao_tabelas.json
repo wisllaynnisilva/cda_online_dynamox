@@ -1,0 +1,28 @@
+{
+  "hierarquia": {
+    "id": "1yh0_mkYbB-KbwUNwz9txY99bQHktD9mUFtDVscbOLag",
+    "chaves": [
+      "spot.id"
+    ]
+  },
+  "alertas": {
+    "id": "1DUmtzyd6WpsSYm9W5CWuyiQ_9-FkRbZz_luHhkH-CeI"
+  },
+  "laudos": {
+    "id": "1x6AJxILgPxb13LCaK1L8qizZaxGK3qOZtTiR_BwqyoA",
+    "chaves": [
+      "reportId"
+    ]
+  },
+  "telemetria": {
+    "id": "11rzDwr5U6HAfIUXHLNOCcoFkmPEcOUNDpTnZ4Nmg2uA",
+    "chaves": [
+      "monitoringPointId",
+      "attributes_axis",
+      "displayName_pt",
+      "unit",
+      "dataPoints_value",
+      "dataPoints_datetime"
+    ]
+  }
+}
