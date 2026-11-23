@@ -51,6 +51,10 @@ PONTOS_TESTE_ALERTAS = 5
 # (pode ter vários; mantenha só as necessárias por causa do limite)
 MACHINELIST = ["6a8489ccb0091263f61fe6cf"]
 
+# Tabela histórica: ao passar deste nº de linhas, o arquivo é arquivado como
+# '<nome> revNNN' e a planilha ativa recomeça vazia (mesmo ID/link).
+LIMITE_LINHAS = {"telemetria": 500_000}
+
 PLANILHAS = {
     "hierarquia": "1yh0_mkYbB-KbwUNwz9txY99bQHktD9mUFtDVscbOLag",
     "alertas": "1DUmtzyd6WpsSYm9W5CWuyiQ_9-FkRbZz_luHhkH-CeI",
@@ -552,6 +556,7 @@ def etapa_telemetria(df_hier):
                 "dataPoints_value", "dataPoints_datetime"],
         nome="telemetria",
         value_input_option="RAW",
+        limite_linhas=LIMITE_LINHAS["telemetria"],
     )
     return df
 
