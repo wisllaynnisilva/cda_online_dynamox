@@ -1,0 +1,9 @@
+pandas
+requests
+PyJWT
+pyspark
+gspread
+google-auth
+gspread-dataframe
+oauth2client
+cryptography

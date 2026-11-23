@@ -49,7 +49,7 @@ PONTOS_TESTE_ALERTAS = 5
 
 # Máquinas cuja telemetria (temperatura) é coletada — lista de IDs
 # (pode ter vários; mantenha só as necessárias por causa do limite)
-MACHINELIST = ["62b20314457a4c772a1ba4a8"]
+MACHINELIST = ["6a8489ccb0091263f61fe6cf"]
 
 PLANILHAS = {
     "hierarquia": "1yh0_mkYbB-KbwUNwz9txY99bQHktD9mUFtDVscbOLag",
