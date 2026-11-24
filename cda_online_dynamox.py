@@ -18,7 +18,7 @@ import jwt
 import pandas as pd
 
 from cda_utils import (
-    Pipeline, abrir_aba, anexar_novos, dia_referencia, env_json,
+    Pipeline, abrir_aba, anexar_novos, avisar, dia_referencia, env_json,
     env_obrigatoria, gravar_aba, http, log, sheets_retry,
 )
 
@@ -363,11 +363,11 @@ def etapa_alertas(df_hier):
     if teste and all(r is None for r in teste):
         # Acontecia todo dia: 404 em 100% dos pontos e a planilha era
         # apagada e regravada vazia. Agora a planilha é preservada.
-        raise RuntimeError(
-            f"404 nos {len(teste)} primeiros pontos em /v1/alert-policies/status — "
-            "acesso aos alertas indisponível (ex.: troca de contrato). "
-            "Etapa interrompida para poupar requisições; planilha preservada."
+        avisar(
+            f"alertas: 404 nos {len(teste)} primeiros pontos — acesso indisponível "
+            "(troca de contrato). Etapa não executada para poupar requisições; planilha preservada."
         )
+        return None
 
     respostas = teste + em_paralelo(buscar, spots[PONTOS_TESTE_ALERTAS:])
     nao_encontrados = sum(r is None for r in respostas)
