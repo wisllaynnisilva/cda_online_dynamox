@@ -513,8 +513,22 @@ def etapa_laudos():
 # 6. TELEMETRIA (temperatura dos pontos das máquinas em MACHINELIST, D-1)
 # ---------------------------------------------------------------------------
 
-def etapa_telemetria(df_hier):
-    spots = df_hier.loc[df_hier["machine.id"].isin(MACHINELIST), "spot.id"].dropna().unique().tolist()
+def spots_das_maquinas():
+    """Pontos das máquinas de MACHINELIST direto da API (1 requisição por máquina)."""
+    spots = []
+    for maquina in MACHINELIST:
+        docs = paginar_docs(f"/v1/assets/{maquina}/monitoring-points", {"limit": 100})
+        spots.extend(d["_id"] for d in docs if d.get("_id"))
+    return list(dict.fromkeys(spots))
+
+
+def etapa_telemetria(df_hier=None):
+    if df_hier is not None and not df_hier.empty:
+        spots = df_hier.loc[df_hier["machine.id"].isin(MACHINELIST), "spot.id"].dropna().unique().tolist()
+    else:
+        # reprocessamento sem a etapa hierarquia: busca só os pontos das máquinas
+        # da lista (poucas requisições, em vez de ~1000 da hierarquia completa)
+        spots = spots_das_maquinas()
     log.info("Spots para telemetria: %d", len(spots))
     if not spots:
         log.warning("Nenhum ponto encontrado para MACHINELIST=%s — verifique o ID da máquina", MACHINELIST)
@@ -573,7 +587,7 @@ if __name__ == "__main__":
     p.etapa("token", renovar_token)
     df_hier = p.etapa("hierarquia", etapa_hierarquia, depende_de=["token"])
     p.etapa("laudos", etapa_laudos, depende_de=["token"])
-    p.etapa("telemetria", lambda: etapa_telemetria(df_hier), depende_de=["hierarquia"])
+    p.etapa("telemetria", lambda: etapa_telemetria(df_hier), depende_de=["token"])
     p.etapa("alertas", lambda: etapa_alertas(df_hier), depende_de=["hierarquia"])
 
     p.finalizar()
